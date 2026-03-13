@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StoreType {
+  GO_PLANET
+  BRAND_MARK
+}
+
+enum ProductCategory {
+  SHIRT
+  KURTA
+  SHERWANI
+  JACKET
+  GOWN
+  DRESS
+  LEHENGA
+  DUPATTA
+  FOOTWEAR
+  ACCESSORY
+  JEWELLERY
+  BROOCH
+  PERFUME
+  BLAZER
+}
+
+enum RecommendationType {
+  FOOTWEAR
+  ACCESSORY
+  JEWELLERY
+  BROOCH
+  DUPATTA
+  PERFUME
+}
+
+enum ReservationType {
+  ITEM_RESERVATION
+  STORE_VISIT
+  CALL_REQUEST
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model Store {
+  id           String      @id @default(cuid())
+  name         String
+  type         StoreType
+  location     String
+  phone        String
+  products     Product[]
+  inventory    Inventory[]
+  reservations Reservation[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  name            String
+  sku             String           @unique
+  category        ProductCategory
+  description     String
+  price           Float
+  imageUrl        String
+  rackLocation    String
+  isActive        Boolean          @default(true)
+  storeId         String
+  store           Store            @relation(fields: [storeId], references: [id])
+  inventory       Inventory[]
+  garmentAsset    GarmentAsset?
+  recommendations Recommendation[] @relation("BaseProductRecommendations")
+  recommendedBy   Recommendation[] @relation("RecommendedProduct")
+  reservations    Reservation[]
+  analytics       ProductAnalytics?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Inventory {
+  id        String   @id @default(cuid())
+  storeId   String
+  productId String
+  quantity  Int      @default(0)
+  store     Store    @relation(fields: [storeId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, productId])
+}
+
+model GarmentAsset {
+  id                    String   @id @default(cuid())
+  productId             String   @unique
+  originalImageUrl      String
+  processedImageUrl     String
+  backgroundRemoved     Boolean  @default(false)
+  centered              Boolean  @default(false)
+  classifiedCategory    ProductCategory
+  generatedTryOnAsset   String
+  processingNotes       String
+  product               Product  @relation(fields: [productId], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  notes           String?
+  reservationType ReservationType
+  status          ReservationStatus @default(PENDING)
+  storeId         String
+  productId       String?
+  scheduledAt     DateTime?
+  store           Store             @relation(fields: [storeId], references: [id])
+  product         Product?           @relation(fields: [productId], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Recommendation {
+  id                   String             @id @default(cuid())
+  baseProductId        String
+  recommendedProductId String
+  type                 RecommendationType
+  score                Float              @default(0.5)
+  baseProduct          Product            @relation("BaseProductRecommendations", fields: [baseProductId], references: [id])
+  recommendedProduct   Product            @relation("RecommendedProduct", fields: [recommendedProductId], references: [id])
+  createdAt            DateTime           @default(now())
+
+  @@unique([baseProductId, recommendedProductId, type])
+}
+
+model ProductAnalytics {
+  id           String   @id @default(cuid())
+  productId    String   @unique
+  views        Int      @default(0)
+  tryOns       Int      @default(0)
+  reservations Int      @default(0)
+  product      Product  @relation(fields: [productId], references: [id])
+  updatedAt    DateTime @updatedAt
+}
