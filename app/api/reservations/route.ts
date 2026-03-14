@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { parseReservationPayload } from "@/lib/validators";
 
 export async function GET() {
   const reservations = await prisma.reservation.findMany({
@@ -12,46 +13,42 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as {
-    customerName?: string;
-    customerEmail?: string;
-    customerPhone?: string;
-    reservationType?: "ITEM_RESERVATION" | "STORE_VISIT" | "CALL_REQUEST";
-    productId?: string;
-    storeId?: string;
-    notes?: string;
-  };
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const parsed = parseReservationPayload(body);
 
-  const stores = await prisma.store.findMany({ take: 1 });
-
-  if (!body.customerName || !body.reservationType) {
-    return NextResponse.json({ error: "customerName and reservationType are required" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid reservation payload" }, { status: 400 });
   }
 
-  const fallbackStoreId = stores[0]?.id;
-  const storeId = body.storeId ?? fallbackStoreId;
+  const store = await prisma.store.findUnique({ where: { id: parsed.data.storeId } });
+  if (!store) {
+    return NextResponse.json({ error: "Selected store does not exist" }, { status: 400 });
+  }
 
-  if (!storeId) {
-    return NextResponse.json({ error: "No store configured" }, { status: 500 });
+  if (parsed.data.productId) {
+    const product = await prisma.product.findUnique({ where: { id: parsed.data.productId } });
+    if (!product) {
+      return NextResponse.json({ error: "Selected product does not exist" }, { status: 400 });
+    }
   }
 
   const reservation = await prisma.reservation.create({
     data: {
-      customerName: body.customerName,
-      customerEmail: body.customerEmail,
-      customerPhone: body.customerPhone,
-      reservationType: body.reservationType,
-      productId: body.productId,
-      storeId,
-      notes: body.notes,
+      customerName: parsed.data.customerName,
+      customerEmail: parsed.data.customerEmail || undefined,
+      customerPhone: parsed.data.customerPhone,
+      reservationType: parsed.data.reservationType,
+      productId: parsed.data.productId,
+      storeId: parsed.data.storeId,
+      notes: parsed.data.notes,
     },
   });
 
-  if (body.productId) {
+  if (parsed.data.productId) {
     await prisma.productAnalytics.upsert({
-      where: { productId: body.productId },
+      where: { productId: parsed.data.productId },
       update: { reservations: { increment: 1 } },
-      create: { productId: body.productId, reservations: 1 },
+      create: { productId: parsed.data.productId, reservations: 1 },
     });
   }
 

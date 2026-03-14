@@ -14,12 +14,12 @@ export default function HomePage() {
     <div className="space-y-8">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
         <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-amber-400/20 px-3 py-1 text-xs tracking-[0.2em] text-amber-200">
-          <Sparkles size={14} /> LUXURY AI STYLING
+          <Sparkles size={14} /> GPBM INTERNAL STUDIO V2
         </p>
-        <h1 className="text-4xl font-bold md:text-6xl">GPBM Virtual Style Studio — Your AI Personal Fashion Stylist</h1>
+        <h1 className="text-4xl font-bold md:text-6xl">GPBM Virtual Style Studio</h1>
         <p className="mt-4 max-w-3xl text-white/80">
-          A production-ready AI fashion platform for Go Planet and Brand Mark with virtual try-on, recommendations, wedding styling,
-          inventory-aware product visibility, reservations, and retail analytics.
+          Internal-use fashion experience platform for Go Planet and Brand Mark with website mode, kiosk mirror mode, inventory-controlled
+          visibility, admin product controls, preview try-on mode, reservations, and actionable analytics.
         </p>
       </section>
 

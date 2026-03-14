@@ -2,22 +2,15 @@ import { ProductCategory } from "@prisma/client";
 
 import { ProductCard } from "@/components/product-card";
 import { StudioClient } from "@/components/studio-client";
+import { customerVisibleProductWhere } from "@/lib/product-visibility";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudioPage() {
   const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      inventory: {
-        some: {
-          quantity: {
-            gt: 0,
-          },
-        },
-      },
-    },
+    where: customerVisibleProductWhere(true),
     include: {
       inventory: true,
+      store: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -34,8 +27,19 @@ export default async function StudioPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-4xl font-bold">Website Mode /studio</h1>
-      <StudioClient products={mainProducts.map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl }))} />
+      <StudioClient
+        products={mainProducts.map((p) => ({
+          id: p.id,
+          name: p.name,
+          imageUrl: p.imageUrl,
+          price: p.price,
+          category: p.category,
+          storeName: p.store.name,
+          storeId: p.storeId,
+          stock: p.inventory[0]?.quantity ?? 0,
+          previewAllowedWhenOutOfStock: p.isPreviewAllowedWhenOutOfStock,
+        }))}
+      />
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
@@ -47,7 +51,9 @@ export default async function StudioPage() {
             imageUrl={product.imageUrl}
             rackLocation={product.rackLocation}
             price={product.price}
+            storeName={product.store.name}
             stock={product.inventory[0]?.quantity ?? 0}
+            lowStockThreshold={product.lowStockThreshold}
           />
         ))}
       </section>

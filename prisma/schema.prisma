@@ -30,12 +30,20 @@ enum ProductCategory {
 }
 
 enum RecommendationType {
-  FOOTWEAR
   ACCESSORY
+  FOOTWEAR
+  PERFUME
   JEWELLERY
   BROOCH
   DUPATTA
-  PERFUME
+  STYLING_PAIR
+}
+
+enum ProductStatus {
+  ACTIVE
+  HIDDEN
+  SOLD_OUT
+  DRAFT
 }
 
 enum ReservationType {
@@ -72,8 +80,12 @@ model Product {
   description     String
   price           Float
   imageUrl        String
+  imageMimeType   String?
   rackLocation    String
   isActive        Boolean          @default(true)
+  status          ProductStatus     @default(ACTIVE)
+  lowStockThreshold Int            @default(2)
+  isPreviewAllowedWhenOutOfStock Boolean @default(false)
   storeId         String
   store           Store            @relation(fields: [storeId], references: [id])
   inventory       Inventory[]
@@ -140,6 +152,7 @@ model Recommendation {
   baseProduct          Product            @relation("BaseProductRecommendations", fields: [baseProductId], references: [id])
   recommendedProduct   Product            @relation("RecommendedProduct", fields: [recommendedProductId], references: [id])
   createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @default(now()) @updatedAt
 
   @@unique([baseProductId, recommendedProductId, type])
 }

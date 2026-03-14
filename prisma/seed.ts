@@ -131,8 +131,13 @@ async function main() {
         description: entry.description,
         price: entry.price,
         imageUrl: entry.imageUrl,
+        imageMimeType: "image/svg+xml",
         rackLocation: entry.rackLocation,
         storeId: entry.storeId,
+        status: entry.quantity > 0 ? "ACTIVE" : "SOLD_OUT",
+        isActive: true,
+        lowStockThreshold: 2,
+        isPreviewAllowedWhenOutOfStock: entry.quantity === 0,
       },
     });
 
@@ -191,9 +196,11 @@ async function main() {
   const recommendationTargets = products.filter((p) => recommendationCategories.includes(p.category));
 
   const defaultTypes: RecommendationType[] = [
+    RecommendationType.ACCESSORY,
     RecommendationType.FOOTWEAR,
-    RecommendationType.BROOCH,
     RecommendationType.PERFUME,
+    RecommendationType.JEWELLERY,
+    RecommendationType.STYLING_PAIR,
   ];
 
   for (const base of baseOutfits) {
@@ -201,9 +208,11 @@ async function main() {
       const type =
         target.category === ProductCategory.FOOTWEAR
           ? RecommendationType.FOOTWEAR
-          : target.category === ProductCategory.BROOCH
-            ? RecommendationType.BROOCH
-            : RecommendationType.PERFUME;
+          : target.category === ProductCategory.JEWELLERY || target.category === ProductCategory.BROOCH
+            ? RecommendationType.JEWELLERY
+            : target.category === ProductCategory.PERFUME
+              ? RecommendationType.PERFUME
+              : RecommendationType.ACCESSORY;
 
       if (!defaultTypes.includes(type)) continue;
 

@@ -1,30 +1,29 @@
 import { KioskClient } from "@/components/kiosk-client";
+import { getAppBaseUrl } from "@/lib/env";
+import { customerVisibleProductWhere } from "@/lib/product-visibility";
 import { prisma } from "@/lib/prisma";
 
 export default async function KioskPage() {
   const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      inventory: {
-        some: {
-          quantity: { gt: 0 },
-        },
-      },
-    },
-    include: { inventory: true },
+    where: customerVisibleProductWhere(true),
+    include: { inventory: true, store: true },
     orderBy: { name: "asc" },
   });
 
   return (
     <div className="space-y-4">
-      <h1 className="text-5xl font-bold">/kiosk — Store Mirror Mode</h1>
       <KioskClient
+        appBaseUrl={getAppBaseUrl()}
         products={products.map((p) => ({
           id: p.id,
           name: p.name,
           category: p.category,
           rackLocation: p.rackLocation,
           imageUrl: p.imageUrl,
+          storeName: p.store.name,
+          storeId: p.storeId,
+          price: p.price,
+          stock: p.inventory[0]?.quantity ?? 0,
         }))}
       />
     </div>

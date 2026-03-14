@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { customerVisibleProductWhere, isLowStock } from "@/lib/product-visibility";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  const includeOutOfStockPreview = false;
   const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      inventory: {
-        some: {
-          quantity: { gt: 0 },
-        },
-      },
-    },
+    where: customerVisibleProductWhere(includeOutOfStockPreview),
     include: {
       store: true,
       inventory: true,
@@ -22,7 +17,8 @@ export async function GET() {
   return NextResponse.json({
     products: products.map((product) => ({
       ...product,
-      lowStock: (product.inventory[0]?.quantity ?? 0) > 0 && (product.inventory[0]?.quantity ?? 0) <= 2,
+      stockQuantity: product.inventory[0]?.quantity ?? 0,
+      lowStock: isLowStock(product.inventory[0]?.quantity ?? 0, product.lowStockThreshold),
     })),
   });
 }

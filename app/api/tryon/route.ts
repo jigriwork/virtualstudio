@@ -10,9 +10,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "imageBase64 and productId are required" }, { status: 400 });
   }
 
-  const product = await prisma.product.findUnique({ where: { id: body.productId } });
+  const product = await prisma.product.findUnique({ where: { id: body.productId }, include: { inventory: true } });
   if (!product) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  const stock = product.inventory[0]?.quantity ?? 0;
+  if (stock <= 0 && !product.isPreviewAllowedWhenOutOfStock) {
+    return NextResponse.json({ error: "This item is currently out of stock for preview" }, { status: 400 });
   }
 
   const result = await runVirtualTryOnPipeline(body.imageBase64, product.imageUrl);
@@ -23,5 +28,8 @@ export async function POST(request: Request) {
     create: { productId: product.id, tryOns: 1 },
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({
+    ...result,
+    message: "Preview Mode result generated",
+  });
 }
